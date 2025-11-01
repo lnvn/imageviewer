@@ -1,0 +1,5 @@
+module github.com/lnvn/imageviewer
+
+go 1.22.2
+
+require github.com/aws/aws-lambda-go v1.50.0
