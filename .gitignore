@@ -1,0 +1,23 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*_test
+
+# Output of 'go build'
+# (The binary built for your current operating system and architecture)
+/{{.Name}}
+
+# Dependency directories (except vendor)
+# If you are using go modules, this isn't strictly necessary but is good practice.
+/vendor/
+
+# Package files
+*.a
+*.o
+
+# Compilation output
+*.out
