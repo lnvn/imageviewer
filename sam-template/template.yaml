@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template - Lambda & S3
+
+Resources:
+  GreetingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri: .. # template in sam-template directory, then need to go back
+      
+      Policies:
+        - S3ReadPolicy
+        - S3ReadPolicy:
+            BucketName: !Ref MyS3Bucket  # References a bucket defined below
+        - Statement:
+            Effect: Allow
+            Action: 
+              - s3:ListAllMyBuckets
+            Resource: "*"
+
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref MyS3Bucket
+          
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket

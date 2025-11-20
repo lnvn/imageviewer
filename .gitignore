@@ -21,3 +21,6 @@
 
 # Compilation output
 *.out
+
+# binary
+main
