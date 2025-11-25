@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template - Lambda & S3
+Resources:
+  GreetingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      DockerContext: /home/longnd/Developments/Code/Golang/imageviewer
+      DockerTag: go-image-viewer
+      Dockerfile: Dockerfile
+      SamResourceId: GreetingFunction
+    Properties:
+      PackageType: Image
+      Timeout: 60
+      MemorySize: 512
+      Policies:
+      - S3ReadPolicy
+      - S3ReadPolicy:
+          BucketName:
+            Ref: MyS3Bucket
+      - Statement:
+          Effect: Allow
+          Action:
+          - s3:ListAllMyBuckets
+          Resource: '*'
+      Environment:
+        Variables:
+          S3_BUCKET_NAME:
+            Ref: MyS3Bucket
+      Events:
+        GetImage:
+          Type: Api
+          Properties:
+            Path: /image
+            Method: get
+      ImageUri: greetingfunction:go-image-viewer
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: my-bucket

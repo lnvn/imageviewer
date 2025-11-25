@@ -2,22 +2,29 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
-	"strings"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// Global variable for the S3 client, initialized during the cold start
+// Global variable for the S3 client
 var s3Client *s3.Client
 
 func init() {
 	// The init function now loads the AWS configuration and creates the S3 client.
 	// Load the AWS configuration from the environment (credentials, region)
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		region = "ap-southeast-1" // Default fallback
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
 		fmt.Printf("FATAL: unable to load SDK config, %v\n", err)
 		os.Exit(1)
@@ -27,33 +34,51 @@ func init() {
 	s3Client = s3.NewFromConfig(cfg)
 }
 
-// HandleRequest lists the first 5 S3 buckets and returns a greeting plus the list.
-func HandleRequest(ctx context.Context) (string, error) {
-	name := "AWS User" 
-	
-	result, err := s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
+// HandleRequest downloads the file from S3 and returns it as a Base64 encoded string.
+func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	bucketName := os.Getenv("S3_BUCKET_NAME")
+	filename := os.Getenv("FILE_NAME")
+
+	if bucketName == "" || filename == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       "S3_BUCKET_NAME and FILE_NAME environment variables are required",
+		}, nil
+	}
+
+	// Get the object from S3
+	result, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &bucketName,
+		Key:    &filename,
+	})
 	if err != nil {
-		return "", fmt.Errorf("failed to list buckets: %w", err)
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       fmt.Sprintf("Failed to get file from S3: %v", err),
+		}, nil
+	}
+	defer result.Body.Close()
+
+	// Read the content
+	bodyBytes, err := io.ReadAll(result.Body)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       fmt.Sprintf("Failed to read file content: %v", err),
+		}, nil
 	}
 
-	var bucketNames []string
-	for i, bucket := range result.Buckets {
-		if i < 5 { // Limit to the first 5 for brevity
-			bucketNames = append(bucketNames, *bucket.Name)
-		}
-	}
-	
-	var bucketList string
-	if len(bucketNames) > 0 {
-		bucketList = fmt.Sprintf("Found %d buckets (first 5: %s).", 
-			len(result.Buckets), strings.Join(bucketNames, ", "))
-	} else {
-		bucketList = "No S3 buckets found."
-	}
+	// Encode to Base64
+	encodedBody := base64.StdEncoding.EncodeToString(bodyBytes)
 
-	// 4. Return the combined message
-	greeting := fmt.Sprintf("Hello, %s! S3 Status: %s", name, bucketList)
-	return greeting, nil
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Headers: map[string]string{
+			"Content-Type": "image/jpeg", // Assuming JPEG for now, could be dynamic
+		},
+		Body:            encodedBody,
+		IsBase64Encoded: true,
+	}, nil
 }
 
 func main() {

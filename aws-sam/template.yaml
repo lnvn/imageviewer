@@ -8,7 +8,9 @@ Resources:
     Properties:
       Handler: main
       Runtime: go1.x
-      CodeUri: .. # template in sam-template directory, then need to go back
+      CodeUri: ../
+      Timeout: 60
+      MemorySize: 512
       
       Policies:
         - S3ReadPolicy
@@ -23,6 +25,13 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET_NAME: !Ref MyS3Bucket
+
+      Events:
+        GetImage:
+          Type: Api
+          Properties:
+            Path: /image
+            Method: get
           
   MyS3Bucket:
     Type: AWS::S3::Bucket

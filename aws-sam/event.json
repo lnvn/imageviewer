@@ -1,1 +1,6 @@
-{}
+{
+    "httpMethod": "GET",
+    "queryStringParameters": {
+        "filename": "Canon/204___10/IMG_1737.JPG"
+    }
+}

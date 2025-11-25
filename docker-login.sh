@@ -1,0 +1,1 @@
+    aws ecr get-login-password --region ap-southeast-1 --profile ecr | docker login --username AWS --password-stdin 375289800477.dkr.ecr.ap-southeast-1.amazonaws.com
